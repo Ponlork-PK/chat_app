@@ -38,7 +38,9 @@ class SelectScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 80,
                 margin: EdgeInsets.only(bottom: 5),
-                decoration: BoxDecoration(color: Colors.amber),
+                decoration: BoxDecoration(
+                  boxShadow: [BoxShadow(color: Colors.grey.withAlpha(80), blurRadius: 1, spreadRadius: 1, )]
+                ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10.0,

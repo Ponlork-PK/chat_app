@@ -14,7 +14,7 @@ class ChatScreen extends StatelessWidget {
         leading: IconButton(
           onPressed: (){
             Get.back();
-          }, 
+          },
           icon: Icon(Icons.arrow_back_ios)
         ),
         title: Row(
