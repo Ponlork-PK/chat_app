@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 // ignore: must_be_immutable
 class HomeScreen extends StatelessWidget {
   RxInt id;
-  HomeScreen({super.key, required this.id});
+  HomeScreen({super.key, required this.id,});
 
   var names = <String>['Alex', 'Jonh', 'Long', 'You', 'Sanchez', 'Oddo'].obs;
   var images = <String>[
@@ -179,7 +179,14 @@ class HomeScreen extends StatelessWidget {
                       child: InkWell(
                         onTap: () {
                           print(id.value);
-                          Get.to(ChatScreen(name: names[index].obs, image: images[index].obs));
+                          Get.to(
+                            ChatScreen(
+                              name: names[index].obs, 
+                              image: images[index].obs,
+                              myId: id,
+                              peerId: index.obs,
+                            )
+                          );
                         },
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
