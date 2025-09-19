@@ -105,7 +105,7 @@ class HomeScreen extends StatelessWidget {
                                               Container(
                                                 decoration: BoxDecoration(
                                                   borderRadius: BorderRadius.circular(45),
-                                                  border: Border.all(color: Colors.green, width: 3,)
+                                                  border: Border.all(color: Colors.green, width: 4,)
                                                 ),
                                                 child: ClipRRect(
                                                   borderRadius: BorderRadius.all(
@@ -120,11 +120,20 @@ class HomeScreen extends StatelessWidget {
                                                 ),
                                               ),
                                               Positioned(
-                                                left: 56,
-                                                bottom: 0,
+                                                left: 52,
+                                                bottom: 2,
                                                 child: InkWell(
-                                                  child: const Icon(Icons.add),
                                                   onTap: () {},
+                                                  child: Container(
+                                                    width: 26,
+                                                    height: 26,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.grey[400],
+                                                      borderRadius: BorderRadius.circular(13),
+                                                      border: BoxBorder.all(color: Colors.white, width: 2)
+                                                    ),
+                                                    child: const Icon(Icons.add, size: 22,),
+                                                  ),
                                                 ),
                                               ),
                                             ],
