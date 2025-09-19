@@ -25,10 +25,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final isConnected = false.obs;
 
   late final String roomId;
-  String _makeRoomId(int a, int b) {
-    final x = a < b ? a : b;
-    final y = a < b ? b : a;
-    return '$x-$y';
+  String _makeRoomId(int senderId, int receiverId) {
+    final smallerId = senderId < receiverId ? senderId : receiverId;
+    final largerId = senderId < receiverId ? receiverId : senderId;
+    return '$smallerId-$largerId';
   }
 
   @override
