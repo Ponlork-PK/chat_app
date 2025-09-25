@@ -1,6 +1,7 @@
 # chat_app
 
 Flutter version used in this project is 3.35.2
+
 Node version for the server is v24.6.0
 
 ### Client (Frontend)
