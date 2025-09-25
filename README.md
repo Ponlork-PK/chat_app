@@ -6,25 +6,21 @@ Node version for the server is v24.6.0
 
 ### Client (Frontend)
 
-| Technology |
+Technology
 
-| :--- | :--- |
+**Flutter** (Dart) | Primary framework for building the cross-platform UI.
 
-| **Flutter** (Dart) | Primary framework for building the cross-platform UI. |
+**State Management** | GetX for managing application state.
 
-| **State Management** | GetX for managing application state. |
-
-| **socket.io** | For establishing real-time connections. |
+**socket.io** | For establishing real-time connections.
 
 ### Server (Backend)
 
-| Component |
+Component
 
-| :--- | :--- |
+**Server Framework** | Node.js/Express To handle API requests.
 
-| **Server Framework** | Node.js/Express To handle API requests. |
-
-| **WebSockets Library** | Socket.IO For persistent, real-time bidirectional communication. |
+**WebSockets Library** | Socket.IO For persistent, real-time bidirectional communication.
 
 ***
 
