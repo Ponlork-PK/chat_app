@@ -25,7 +25,7 @@ class SelectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Chat App')),
+      appBar: AppBar(title: Text('Account')),
       body: SingleChildScrollView(
         child: Column(
           children: List.generate(names.length, (index) {

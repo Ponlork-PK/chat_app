@@ -7,58 +7,46 @@ const server = app.listen(PORT, ()=>{
   console.log('server running at http://localhost:3000')
 } )
 
-
 const io = require('socket.io')(server);
+
+const online = new Map(); 
+
 io.on('connection', (socket) => {
+  let current = null;
 
   const username = socket.handshake.auth?.username || socket.id;
-  console.log('Connected:', socket.id, 'as', username);
+  online.set(username, socket.id);
 
-  socket.on('join', ({ room }) => {
-    if (!room || typeof room !== 'string') return;
-    socket.join(room);
-    console.log(`Socket ${socket.id} joined room ${room}`);
-
-    socket.emit('joined', { room });
-  });
+  console.log('Connected:', socket.id, 'as user', username);
 
   socket.on('dm', (payload = {}) => {
-    const room = String(payload.room || payload.roomId || '');
+    
     const from = String(payload.from || username);
+    const to = String(payload.to || ''); 
     const text = String(payload.message ?? payload.text ?? '');
     const time = String(payload.time ?? '');
 
-    if (!room || !text) return;
+    if (!to || !text) return;  
 
     const out = {
       id: Date.now().toString(),
-      roomId: room,
-      room,
       from,
+      to, 
       message: text,
       text,
       time,
       sendByMe: from,
     };
-
-    io.to(room).emit('dm', out);
-  });
-
-  socket.on('message', (data = {})=>{
-    const payload = {
-      id: Date.now().toString(),
-      from: username,
-      message: String(data.message ?? data.text ?? ''),
-      text: String(data.text ?? data.message ?? '' ),
-      time: new Date().toLocaleTimeString(),
-      sendByMe: username,
-      roomId: "global",
-      room: "global",
+    
+    const targetId = online.get(to);
+    if (targetId) {
+      io.to(targetId).emit('dm', out);   
     }
-    console.log('data: ', data);
-    console.log('payload: ', payload);
-  });
 
+    socket.emit('dm', out); 
+    
+  });
+  
   socket.on('disconnect', ()=>{
     console.log('Disconnected Successfully.', socket.id);
   });
