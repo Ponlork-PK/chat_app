@@ -26,71 +26,74 @@ class SelectScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Account')),
-      body: SingleChildScrollView(
-        child: Column(
-          children: List.generate(names.length, (index) {
-            return InkWell(
-              onTap: () {
-                print(index);
-                Get.to(HomeScreen(id: index.obs));
-              },
-              child: Container(
-                width: double.infinity,
-                height: 80,
-                margin: EdgeInsets.only(bottom: 5),
-                decoration: BoxDecoration(
-                  boxShadow: [BoxShadow(color: Colors.grey.withAlpha(80), blurRadius: 1, spreadRadius: 1, )]
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10.0,
-                    vertical: 5,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 70,
-                              height: 70,
-                              margin: EdgeInsets.only(right: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(35),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(35),
-                                child: Image.network(
-                                  width: 70,
-                                  height: 70,
-                                  images[index],
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-              
-                            Text(
-                              names[index],
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.arrow_forward_ios),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ),
+      body: _buildBody,
     );
   }
+
+  get _buildBody => SingleChildScrollView(
+    child: Column(
+      children: List.generate(names.length, (index) {
+        return InkWell(
+          onTap: () {
+            print(index);
+            Get.to(HomeScreen(id: index.obs));
+          },
+          child: Container(
+            width: double.infinity,
+            height: 80,
+            margin: EdgeInsets.only(bottom: 5),
+            decoration: BoxDecoration(
+              boxShadow: [BoxShadow(color: Colors.grey.withAlpha(80), blurRadius: 1, spreadRadius: 1, )]
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10.0,
+                vertical: 5,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 70,
+                          height: 70,
+                          margin: EdgeInsets.only(right: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(35),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(35),
+                            child: Image.network(
+                              width: 70,
+                              height: 70,
+                              images[index],
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+          
+                        Text(
+                          names[index],
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_ios),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    ),
+  );
+
 }

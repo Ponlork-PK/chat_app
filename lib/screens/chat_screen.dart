@@ -71,10 +71,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final me = widget.myId.value.toString();
-    final peer = widget.peerId.value.toString();
-
-    final dmStream = chatController.thread(me, peer);
+    
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -118,60 +115,69 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
           body: Column(
             children: [
-              Expanded(
-                child: Obx(() {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6.0),
-                    child: ListView.builder(
-                      itemCount: dmStream.length,
-                      itemBuilder: (context, index) {
-                        final currentMessage = dmStream[index];
-                        return MessageItem(
-                          isMe: (currentMessage.sentByMe == me).obs,
-                          message: currentMessage.message.obs,
-                          time: currentMessage.time.obs,
-                          image: widget.image,
-                        );
-                      },
-                    ),
-                  );
-                }),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        maxLines: 3,
-                        minLines: 1,
-                        controller: _controller,
-                        decoration: InputDecoration(
-                          hint: Text('message'),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        final text = _controller.text.trim();
-                        if (text.isEmpty) return;
-                        sendMessage(text);
-                        _controller.clear();
-                      },
-                      icon: Icon(Icons.send, size: 30),
-                    ),
-                  ],
-                ),
-              ),
+              _buildMessageList,
+              _buildInputAndSend,
             ],
           ),
         ),
       ),
     );
   }
+
+  get _buildMessageList => Expanded(
+    child: Obx(() {
+
+      final me = widget.myId.value.toString();
+      final peer = widget.peerId.value.toString();
+      final dmStream = chatController.thread(me, peer);
+      
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6.0),
+        child: ListView.builder(
+          itemCount: dmStream.length,
+          itemBuilder: (context, index) {
+            final currentMessage = dmStream[index];
+            return MessageItem(
+              isMe: (currentMessage.sentByMe == me).obs,
+              message: currentMessage.message.obs,
+              time: currentMessage.time.obs,
+              image: widget.image,
+            );
+          },
+        ),
+      );
+    }),
+  );
+
+  get _buildInputAndSend => Padding(
+    padding: const EdgeInsets.all(8.0),
+    child: Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            maxLines: 3,
+            minLines: 1,
+            controller: _controller,
+            decoration: InputDecoration(
+              hint: Text('message'),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: () {
+            final text = _controller.text.trim();
+            if (text.isEmpty) return;
+            sendMessage(text);
+            _controller.clear();
+          },
+          icon: Icon(Icons.send, size: 30),
+        ),
+      ],
+    ),
+  );
 
   void sendMessage(String text) {
     DateTime now = DateTime.now();
@@ -208,4 +214,5 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
 
   }
+
 }

@@ -12,7 +12,6 @@ const io = require('socket.io')(server);
 const online = new Map(); 
 
 io.on('connection', (socket) => {
-  let current = null;
 
   const username = socket.handshake.auth?.username || socket.id;
   online.set(username, socket.id);

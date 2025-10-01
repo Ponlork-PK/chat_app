@@ -24,13 +24,5 @@ class Message {
       time: time,
     );
   }
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'from': from,
-        'to': to,
-        'message': message,
-        'time': time,
-        'sentByMe': sentByMe,
-      };
+  
 }
