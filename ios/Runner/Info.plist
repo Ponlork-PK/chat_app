@@ -45,5 +45,14 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app selects photos and videos for chat.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app uses the camera for photos/videos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app records audio for video capture.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Some message to describe why you need this permission</string>
+
 </dict>
 </plist>
