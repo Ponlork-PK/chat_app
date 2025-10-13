@@ -35,7 +35,7 @@ class LiveRecordBar extends StatelessWidget {
               const Icon(Icons.mic, color: Colors.white, size: 18),
               const SizedBox(width: 10),
               Obx(() => Text(
-                    _formatElapsed(chatController.second.value),
+                    _formatElapsed(chatController.elapsedSeconds.value),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -43,7 +43,7 @@ class LiveRecordBar extends StatelessWidget {
                   )),
               const SizedBox(width: 12),
               Obx(() => TinyWaveform(
-                    samples: chatController.samples.toList(growable: false),
+                    samples: chatController.waveformSamples.toList(growable: false),
                     height: 28,
                     barWidth: 3,
                     barGap: 2,

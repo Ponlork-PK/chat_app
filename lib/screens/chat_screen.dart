@@ -1,5 +1,4 @@
 import 'package:chat_app/controller/chat_controller.dart';
-import 'package:chat_app/controller/voice_controller.dart';
 import 'package:chat_app/model/message.dart';
 import 'package:chat_app/screens/widget/audio_wave_widget.dart';
 import 'package:chat_app/screens/widget/message_item_widget.dart';
@@ -26,7 +25,6 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final ChatController chatController = Get.find<ChatController>();
-  VoiceController voiceController = Get.put(VoiceController());
   final TextEditingController _controller = TextEditingController();
   final isConnected = false.obs;
 
@@ -37,8 +35,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final me = widget.myId.value.toString();
     final peer = widget.peerId.value.toString();
 
-    chatController.initSocket(myId: me);
-    chatController.connectSafely();
+    chatController.setupSocket(myId: me);
+    chatController.connectIfNeeded();
 
     final socket = chatController.socket;
 
@@ -59,17 +57,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (!involeThisChat) return;
 
       final msg = Message.fromJson(map);
-      chatController.addDm(me, peer, msg);
+      chatController.appendMessage(me, peer, msg);
     });
 
-    chatController.inComing.stream.listen((p){
+    chatController.incomingAudioController.stream.listen((p){
       final from = (p['from'] ?? '').toString();
       final to = (p['to'] ?? '').toString();
 
       final inThisChat = (from == peer && to == me) || (from == me && to == peer);
       if(!inThisChat) return;
       final msg = Message.fromJson(p);
-      chatController.addDm(me, peer, msg);
+      chatController.appendMessage(me, peer, msg);
       chatController.scrollToBottom();
     });
 
@@ -95,7 +93,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           appBar: _buildAppBar,
           body: Stack(
             children: [
-              Column(children: [_buildMessageList]),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 60,
+                child: Column(children: [_buildMessageList])),
 
               Positioned(
                 left: 0,
@@ -154,7 +157,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     child: Obx(() {
       final me = widget.myId.value.toString();
       final peer = widget.peerId.value.toString();
-      final dmStream = chatController.thread(me, peer);
+      final dmStream = chatController.getThread(me, peer);
 
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6.0),
@@ -205,11 +208,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           const SizedBox(width: 5),
           GestureDetector(
             onLongPressStart: (_) {
-              chatController.startHold();
+              chatController.startVoiceHold();
             },
-            onLongPressMoveUpdate: (d) => chatController.markCancel(d.localOffsetFromOrigin.dy < -60),
+            onLongPressMoveUpdate: (d) => chatController.setCancelRecording(d.localOffsetFromOrigin.dy < -60),
             onLongPressEnd: (_) async {
-              chatController.endHold(from: widget.myId.value.toString(), to: widget.peerId.value.toString());
+              chatController.endVoiceHold(from: widget.myId.value.toString(), to: widget.peerId.value.toString());
             },
             child: Icon(Icons.mic_none, size: 30,),
           ),
@@ -266,7 +269,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       "from": me,
     };
 
-    chatController.addDm(me, peer, Message.fromJson(offMsg));
+    chatController.appendMessage(me, peer, Message.fromJson(offMsg));
 
     if (chatController.isConnected.value && chatController.socket.connected) {
       var messageJson = {

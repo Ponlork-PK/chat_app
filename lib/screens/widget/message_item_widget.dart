@@ -59,9 +59,7 @@ class MessageItemWidget extends StatelessWidget {
           Flexible(
             child: Container(
               margin: EdgeInsets.only(top: 4),
-              // padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                // color: isMe.value ? Colors.blue : Colors.grey[300],
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(10),
                   topRight: const Radius.circular(10),
