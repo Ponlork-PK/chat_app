@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:chat_app/model/message.dart';
+import 'package:chat_app/service/socket_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,18 +12,13 @@ import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class ChatController extends GetxController {
 
+  final SocketService socketService = SocketService();
   final ScrollController scrollController = ScrollController();
 
   final threads = <String, RxList<Message>>{}.obs;
-
-  late final IO.Socket socket;
-  final isConnected = false.obs;
-  bool _initialized = false;
-  late String _selfId;
 
   final audioRecorder = AudioRecorder();
   StreamSubscription<Amplitude>? _ampSub;
@@ -41,8 +36,16 @@ class ChatController extends GetxController {
   /// Stream of incoming audio payloads for UI to consume & render.
   final incomingAudioController = StreamController<Map<String, dynamic>>.broadcast();
 
-  String _threadKey(String a, String b) =>
-      (a.compareTo(b) <= 0) ? '$a-$b' : '$b-$a';
+  late String myId;
+
+  @override
+  void onInit(){
+    super.onInit();
+    socketService.incomingMediaController.stream.listen(_onMediaReceived);
+    socketService.incomingAudioController.stream.listen(_onAudioReceived);
+  }
+
+  String _threadKey(String a, String b) => (a.compareTo(b) <= 0) ? '$a-$b' : '$b-$a';
 
   RxList<Message> getThread(String senderId, String receiverId) {
     final key = _threadKey(senderId, receiverId);
@@ -57,120 +60,36 @@ class ChatController extends GetxController {
     getThread(senderId, receiverId).clear();
   }
 
-  void setupSocket({required String myId}) {
-    if (_initialized) return;
-    _initialized = true;
-    _selfId = myId;
-
-    socket = IO.io(
-      'http://localhost:3000',
-      IO.OptionBuilder()
-          .setTransports(['websocket'])
-          .setAuth({'username': myId})
-          .setReconnectionAttempts(0)
-          .setTimeout(1500)
-          .disableAutoConnect()
-          .build(),
-    );
-
-    socket.onConnect((_) {
-      print('connected');
-      isConnected.value = true;
-    });
-
-    socket.onDisconnect((_) {
-      print('disconnected');
-      isConnected.value = false;
-    });
-
-    socket.on('media', _handleIncomingMedia);
-    socket.on('audio', _handleIncomingAudio);
+  void setupSocket({required String myId}){
+    this.myId = myId;
+    socketService.initSocket(myId: myId);
   }
 
-  void connectIfNeeded() {
-    if (_initialized && !socket.connected) {
-      try {
-        socket.connect();
-      } catch (_) {}
-    }
+  void connectSafely(){
+    socketService.connectIfNeeded();
   }
 
-  Future<void> _handleIncomingMedia(dynamic data) async {
-    if (data is! Map) return;
-
-    final id = (data['id'] ?? DateTime.now().microsecondsSinceEpoch.toString()).toString();
-    final from = data['from']?.toString() ?? '';
-    final to = data['to']?.toString() ?? '';
-    final type = data['type']?.toString() ?? 'image';
-    final name = data['name']?.toString() ?? '';
-    final mime = data['mime']?.toString() ?? '';
-    final time = data['time']?.toString() ?? '';
-    final b64 = data['data'] as String?;
-
-    String? localPath;
-    if (b64 != null) {
-      final bytes = base64Decode(b64);
-      final ext = _extensionFromMime(mime, fallback: p.extension(name));
-      final file = await _writeTempFileWithExt(
-        bytes,
-        ext: (type == 'file' || type == 'video' || type == 'voice')
-            ? (ext.isEmpty ? '.bin' : ext)
-            : ext,
-      );
-      localPath = file.path;
-    }
-
+  void _onMediaReceived(Map<String, dynamic> data) {
     appendMessage(
-      from,
-      to,
+      data['from'], 
+      data['to'],
       Message(
-        id: id,
-        from: from,
-        to: to,
-        message: '',
-        sentByMe: from,
-        time: time,
-        type: type,
-        url: localPath,
-        name: name,
-        mime: mime,
-      ),
+        id: data['id'], 
+        from: data['from'], 
+        to: data['to'], 
+        message: '', 
+        sentByMe: data['from'], 
+        time: data['time'],
+        type: data['type'],
+        url: data['url'],
+        name: data['name'],
+        mime: data['mime'],
+      )
     );
   }
 
-  Future<void> _handleIncomingAudio(dynamic payload) async {
-    if (payload is! Map) return;
-
-    // prevent local echo
-    if (payload['from']?.toString() == _selfId) return;
-
-    final id = payload['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString();
-    final from = payload['from'];
-    final to = payload['to'];
-    final type = payload['type'] ?? 'audio';
-    final name = payload['name'] ?? 'voice.m4a';
-    final mime = payload['mime'] ?? 'audio/mp4';
-    final time = payload['time'] ?? '';
-    final duration = payload['duration'] ?? 0;
-    final wave = _toDoubleList(payload['wave']);
-
-    final data = payload['data'];
-    final Uint8List bytes = (data is String) ? base64Decode(data) : _toBytes(data);
-    final file = await _writeTempFileWithExt(bytes, ext: '.m4a');
-
-    incomingAudioController.add({
-      'id': id,
-      'from': from,
-      'to': to,
-      'name': name,
-      'mime': mime,
-      'time': time,
-      'duration': duration,
-      'bytes': bytes,
-      'wave': wave,
-      'type': type,
-      'url': file.path,
-    });
+  void _onAudioReceived(Map<String, dynamic> data){
+    incomingAudioController.add(data);
   }
 
   Future<File?> _pickImageFromGallery() async {
@@ -209,6 +128,38 @@ class ChatController extends GetxController {
     return video != null ? File(video.path) : null;
   }
 
+  void sendMessage({required String me, required String peer, required String text}) {
+    DateTime now = DateTime.now();
+    final hour = now.hour;
+    final minute = now.minute;
+    String peroid = hour >= 12 ? "PM" : "AM";
+
+    String time = '$hour:${minute.toString().padLeft(2, '0')} $peroid';
+
+    final offMsg = {
+      "message": text,
+      "text": text,
+      "time": time,
+      "sendByMe": me,
+      "from": me,
+    };
+
+    appendMessage(me, peer, Message.fromJson(offMsg));
+
+    if (socketService.isConnected.value && socketService.socket.connected) {
+      var messageJson = {
+        "from": me,
+        "to": peer,
+        "message": text,
+        "text": text,
+        "time": time,
+        "sendByMe": me,
+      };
+      socketService.socket.emit('dm', messageJson);
+      return;
+    }
+  }
+
   Future<void> sendImageTo(String receiverId, {bool fromCamera = false}) async {
     final file = fromCamera ? await _pickImageFromCamera() : await _pickImageFromGallery();
     if (file == null) return;
@@ -218,7 +169,7 @@ class ChatController extends GetxController {
     final name = p.basename(file.path);
 
     final payload = {
-      'from': _selfId,
+      'from': myId,
       'to': receiverId,
       'type': 'image',
       'url': file.path,
@@ -228,7 +179,7 @@ class ChatController extends GetxController {
       'time': DateTime.now().toIso8601String(),
     };
 
-    socket.emitWithAck('media', payload, ack: (res) {
+    socketService.socket.emitWithAck('media', payload, ack: (res) {
       print('Media ack: $res');
     });
 
@@ -244,7 +195,7 @@ class ChatController extends GetxController {
     final name = p.basename(file.path);
 
     final payload = {
-      'from': _selfId,
+      'from': myId,
       'to': receiverId,
       'type': 'video',
       'url': file.path,
@@ -254,7 +205,7 @@ class ChatController extends GetxController {
       'time': DateTime.now().microsecondsSinceEpoch.toString(),
     };
 
-    socket.emitWithAck('media', payload, ack: (res) {
+    socketService.socket.emitWithAck('media', payload, ack: (res) {
       print('Media ack: $res');
     });
 
@@ -345,7 +296,7 @@ class ChatController extends GetxController {
     });
 
     // Send to server
-    socket.emit('audio', {
+    socketService.socket.emit('audio', {
       'from': from,
       'to': to,
       'name': name,
@@ -358,57 +309,6 @@ class ChatController extends GetxController {
     });
   }
 
-  // Helpers
-  String _extensionFromMime(String? mime, {String fallback = ''}) {
-    if (mime == null || mime.isEmpty) {
-      return fallback.isNotEmpty ? fallback : '.bin';
-    }
-
-    final m = mime.toLowerCase();
-    const map = {
-      // Images
-      'image/jpeg': '.jpg',
-      'image/jpg': '.jpg',
-      'image/png': '.png',
-      'image/gif': '.gif',
-      'image/webp': '.webp',
-      'image/heic': '.heic',
-
-      // Videos (common)
-      'video/mp4': '.mp4',
-      'video/quicktime': '.mov',
-      'video/x-matroska': '.mkv',
-      'video/webm': '.webm',
-      'video/3gpp': '.3gp',
-      'video/3gpp2': '.3g2',
-      'video/avi': '.avi',
-      'video/x-msvideo': '.avi',
-
-      // Audio
-      'audio/aac': '.aac',
-      'audio/mpeg': '.mp3',
-      'audio/mp4': '.m4a',
-      'audio/wav': '.wav',
-      'audio/3gpp': '.3gp',
-      'audio/ogg': '.ogg',
-      'audio/webm': '.weba',
-    };
-
-    if (map.containsKey(m)) return map[m]!;
-
-    if (m.startsWith('image/') || m.startsWith('video/') || m.startsWith('audio/')) {
-      final e = m.split('/').last;
-      return e == 'jpeg' ? '.jpg' : '.$e';
-    }
-    return fallback.isNotEmpty ? fallback : '.bin';
-  }
-
-  Future<File> _writeTempFileWithExt(List<int> bytes, {String ext = '.mp4'}) async {
-    final dir = await Directory.systemTemp.createTemp('chat_media_');
-    final file = File(p.join(dir.path, 'm_${DateTime.now().microsecondsSinceEpoch}$ext'));
-    return file.writeAsBytes(bytes, flush: true);
-  }
-
   Future<String> _tempM4aPath() async {
     final dir = await getTemporaryDirectory();
     return '${dir.path}/vm_${DateTime.now().microsecondsSinceEpoch}.m4a';
@@ -419,15 +319,4 @@ class ChatController extends GetxController {
     return math.pow(10, clamped / 20).toDouble();
   }
 
-  Uint8List _toBytes(dynamic d) {
-    if (d is Uint8List) return d;
-    if (d is List) return Uint8List.fromList(d.cast<int>());
-    if (d is ByteBuffer) return d.asUint8List();
-    throw 'Unsupported audio file type: ${d.runtimeType}';
-  }
-
-  List<double> _toDoubleList(dynamic d) {
-    if (d is List) return d.map((e) => (e as num).toDouble()).toList();
-    return const [];
-  }
 }

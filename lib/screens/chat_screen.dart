@@ -36,9 +36,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final peer = widget.peerId.value.toString();
 
     chatController.setupSocket(myId: me);
-    chatController.connectIfNeeded();
+    chatController.connectSafely();
 
-    final socket = chatController.socket;
+    final socket = chatController.socketService.socket;
 
     socket.off('dm');
     socket.on('dm', (data) {
@@ -75,10 +75,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    chatController.socket.off('dm');
+    chatController.socketService.socket.off('dm');
     super.dispose();
-    if (chatController.socket.connected) chatController.socket.disconnect();
-    chatController.socket.dispose();
+    if (chatController.socketService.socket.connected) chatController.socketService.socket.disconnect();
+    chatController.socketService.socket.dispose();
     _controller.dispose();
   }
 
@@ -237,9 +237,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
           IconButton(
             onPressed: () {
+              final me = widget.myId.value.toString();
+              final peer = widget.peerId.value.toString();
               final text = _controller.text.trim();
               if (text.isEmpty) return;
-              sendMessage(text);
+              chatController.sendMessage(me: me, peer: peer, text: text);
               chatController.scrollToBottom();
               _controller.clear();
             },
@@ -249,39 +251,4 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       ),
     ),
   );
-
-  void sendMessage(String text) {
-    DateTime now = DateTime.now();
-    final hour = now.hour;
-    final minute = now.minute;
-    String peroid = hour >= 12 ? "PM" : "AM";
-
-    String time = '$hour:${minute.toString().padLeft(2, '0')} $peroid';
-
-    final me = widget.myId.value.toString();
-    final peer = widget.peerId.value.toString();
-
-    final offMsg = {
-      "message": text,
-      "text": text,
-      "time": time,
-      "sendByMe": me,
-      "from": me,
-    };
-
-    chatController.appendMessage(me, peer, Message.fromJson(offMsg));
-
-    if (chatController.isConnected.value && chatController.socket.connected) {
-      var messageJson = {
-        "from": me,
-        "to": peer,
-        "message": text,
-        "text": text,
-        "time": time,
-        "sendByMe": me,
-      };
-      chatController.socket.emit('dm', messageJson);
-      return;
-    }
-  }
 }
