@@ -4,7 +4,7 @@ const { Socket } = require('socket.io');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, ()=>{
-  console.log('server running at http://10.131.156.196:3000')
+  console.log('server running at http://10.115.206.196:3000') // mobile: 10.131.156.196.    Ecoin: 10.10.77.233
 } )
 
 const io = require('socket.io')(server, {
@@ -54,38 +54,41 @@ io.on('connection', (socket) => {
 
   socket.on('media', (payload = {}, ask) => {
     try {
-      const from = String(payload.from || username);
-      const to = String(payload.to || '');
-      const type = String(payload.type || 'image');
-      const name = String(payload.name || '');
-      const mime = String(payload.mime || '');
-      const time = String(payload.time ?? '');
-      const data = payload.data;
+      // const hasItem = Array.isArray(payload.items);
+      const isArray = Array.isArray(payload);
+      const packets = isArray ? payload : [payload];
 
-      if(!to && !data) {
-        ask?.({ok: false, error: 'Missing "to" or "data".'});
-        return
-      };
+      const from = String((!isArray ? payload.from : (packets[0]?.from)) || username);
+      const to = String((!isArray ? payload.to : (packets[0]?.to)) || '');
+      const time = String((!isArray ? payload.time : (packets[0]?.time)) ?? '');
+      
 
-      var out = {
-        id: Date.now().toString(),
-        from,
-        to,
-        type,
-        name,
-        mime,
-        data,
-        time,
-      };
+      if(!to) return ask?.({ok: false, error: 'Missing "to" or "impty packets".'});
+
+      const norm = (p) => ({
+        id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        from: String(p.from || from),
+        to: String(p.to || to),
+        type: String(p.type || 'media'),
+        name: String(p.name || ''),
+        mime: String(p.mime || ''),
+        url: String(p.url || ''),
+        data: p.data ?? null,
+        time: String(p.time ?? time),
+      });
+
+      const items = Array.isArray(payload.items) 
+                    ? payload.items.map(norm) 
+                    : (isArray ? payload.map(norm) : [norm(payload)]);
 
       const targetId = online.get(to);
       const delivered = !!targetId;
 
+      const out = { kind: 'media', from, to, time, items };
       if(targetId) io.to(targetId).emit('media', out);
-
       socket.emit('media', out);
       
-      ask?.({ok: true, delivered});
+      ask?.({ok: true, delivered, count: items.length});
     } catch(e) {
       console.error('media error:', e);
       ask?.({ ok: false, error: 'media failed'});

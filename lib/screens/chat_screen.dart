@@ -8,13 +8,15 @@ import 'package:get/get.dart';
 // ignore: must_be_immutable
 class ChatScreen extends StatefulWidget {
   RxString name;
-  RxString image;
+  RxString myImage;
+  RxString peerImage;
   RxInt myId;
   RxInt peerId;
   ChatScreen({
     super.key,
     required this.name,
-    required this.image,
+    required this.myImage,
+    required this.peerImage,
     required this.myId,
     required this.peerId,
   });
@@ -60,6 +62,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       chatController.appendMessage(me, peer, msg);
     });
 
+    chatController.incomingMediaController.stream.listen((p){
+      final me = widget.myId.value.toString();
+      final peer = widget.peerId.value.toString();
+      final from = (p['from'] ?? '').toString();
+      final to = (p['to'] ?? '').toString();
+
+      final inThisChat = (from == peer && to == me) || (from == me && to == peer);
+      if(!inThisChat) return;
+      final msg = Message.fromJson(p);
+      chatController.appendMessage(me, peer, msg);
+      chatController.scrollToBottom();
+    });
+
     chatController.incomingAudioController.stream.listen((p){
       final from = (p['from'] ?? '').toString();
       final to = (p['to'] ?? '').toString();
@@ -91,30 +106,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       child: SafeArea(
         child: Scaffold(
           appBar: _buildAppBar,
-          body: Stack(
-            children: [
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 60,
-                child: Column(children: [_buildMessageList])),
-
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 62,
-                child: LiveRecordBar()
-              ),
-
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _buildInputAndSend
-              )
-            ]
-          ),
+          body: _buildBody,
         ),
       ),
     );
@@ -137,7 +129,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               height: 40,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: Image.network(widget.image.value, fit: BoxFit.cover),
+                child: Image.network(widget.peerImage.value, fit: BoxFit.cover),
               ),
             ),
             const SizedBox(width: 10),
@@ -151,6 +143,31 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       IconButton(onPressed: () {}, icon: Icon(Icons.video_call)),
       IconButton(onPressed: () {}, icon: Icon(Icons.info_outline)),
     ],
+  );
+
+  get _buildBody => Stack(
+    children: [
+      Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 60,
+        child: Column(children: [_buildMessageList])),
+
+      Positioned(
+        left: 0,
+        right: 0,
+        bottom: 62,
+        child: LiveRecordBar()
+      ),
+
+      Positioned(
+        left: 0,
+        right: 0,
+        bottom: 0,
+        child: _buildInputAndSend
+      )
+    ]
   );
 
   get _buildMessageList => Expanded(
@@ -170,14 +187,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               isMe: (currentMessage.sentByMe == me).obs,
               message: currentMessage.message.obs,
               time: currentMessage.time.obs,
-              image: widget.image,
+              myImage: widget.myImage,
+              peerImage: widget.peerImage,
               type: currentMessage.type,
               url: currentMessage.url,
               mime: currentMessage.mime,
               duration: currentMessage.durationMs,
               wave: currentMessage.wave,
               bytes: currentMessage.bytes,
-
+              items: currentMessage.items,
             );
           },
         ),
@@ -194,14 +212,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       child: Row(
         children: [
           IconButton(
-            onPressed: () {
-              chatController.sendVideoTo(widget.peerId.value.toString());
-            },
-            icon: Icon(Icons.video_camera_back_outlined, size: 30),
-          ),
-          IconButton(
-            onPressed: () {
-              chatController.sendImageTo(widget.peerId.value.toString());
+            onPressed: () async{
+              await chatController.pickAndSendMultipleMedia(widget.peerId.value.toString());
             },
             icon: Icon(Icons.image, size: 30),
           ),

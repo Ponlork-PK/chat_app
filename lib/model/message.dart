@@ -1,20 +1,13 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 class Message {
-  final String id;
-  final String from;
-  final String to;
-  final String message;
-  final String sentByMe;
-  final String time;
-
-  final String type;
-  final String? url;
-  final String? name;
-  final String? mime;
+  final String id, from, to, message, sentByMe, time, type;
+  final String? url, name, mime, kind;
   final int? durationMs;
   final List<double>? wave;
   final Uint8List? bytes;
+  final List<MediaItem>? items;
 
   Message({
     required this.id, 
@@ -28,10 +21,14 @@ class Message {
     this.url,
     this.name,
     this.mime,
+    this.kind,
     this.durationMs,
     this.wave,
     this.bytes,
+    this.items,
   });
+
+  bool get isPacket => items != null && items!.isNotEmpty;
 
   factory Message.fromJson(Map<String, dynamic> map){
     final id = (map['id'] ?? DateTime.now().millisecondsSinceEpoch.toString());
@@ -60,16 +57,18 @@ class Message {
     }
 
     Uint8List? bytes;
-    final bRaw = map['bytes'] ?? map['data'];
-    if(bRaw is Uint8List) {
-      bytes = bRaw;
-    } else if(bRaw is ByteBuffer) {
-      bytes = bRaw.asUint8List();
-    } else if(bRaw is List<int>) {
-      bytes = Uint8List.fromList(bRaw);
-    } else if(bRaw is List){
-      bytes = Uint8List.fromList(bRaw.map((e)=> (e as num).toInt()).toList());
+    final data = map['bytes'] ?? map['data'];
+    if(data is String) {
+      bytes = base64Decode(data);
+    } else if(data is List) {
+      bytes = Uint8List.fromList(data.cast<int>());
     }
+
+    final items = (map['items'] is List) 
+          ? (map['items'] as List)
+                .whereType<Map>()
+                .map((e)=> MediaItem.fromJson(e.cast<String, dynamic>())).toList()
+          : null;
 
     return Message(
       id: id, 
@@ -85,7 +84,35 @@ class Message {
       durationMs: durationMs,
       wave: wave,
       bytes: bytes,
+      items: items,
     );
   }
   
+}
+
+class MediaItem {
+  final String type;
+  final String? url, name, mime;
+  final Uint8List? bytes;
+
+  MediaItem({required this.type, this.url, this.name, this.mime, this.bytes});
+
+  factory MediaItem.fromJson(Map<String, dynamic> map){
+    Uint8List? bytes;
+    final data = (map['data'] ?? map['bytes']);
+
+    if(data is String) {
+      bytes = base64Decode(data);
+    } else if(data is List) {
+      bytes = Uint8List.fromList(data.cast<int>());
+    }
+
+    return MediaItem(
+      type: (map['type'] ?? 'image').toString(),
+      url: map['url']?.toString(),
+      name: map['name']?.toString(),
+      mime: map['mime']?.toString(),
+      bytes: bytes,
+    );
+  }
 }

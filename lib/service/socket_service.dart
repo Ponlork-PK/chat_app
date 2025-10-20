@@ -22,7 +22,7 @@ class SocketService {
     _selfId = myId;
 
     socket = IO.io(
-      'http://10.131.156.196:3000',
+      'http://10.115.206.196:3000',
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .setAuth({'username': myId})
@@ -43,8 +43,25 @@ class SocketService {
     });
 
     socket.on('media', (data) async {
-      final result = await _handleIncomingMedia(data);
-      if(result != null) incomingMediaController.add(result);
+      if(data is Map && data['items'] is List){
+        final base = {
+          'id': (data['id'] ?? DateTime.now().microsecondsSinceEpoch).toString(),
+          'from': data['from'],
+          'to': data['to'],
+          'time': data['time'],
+          'type': data['media'],
+        };
+        
+        for( final it in (data['items'] as List)){
+          if( it is Map ){
+            final res = await _handleIncomingMedia({...base, ...it});
+            if(res != null) incomingMediaController.add(res);
+          }
+        }
+      } else {
+        final result = await _handleIncomingMedia(data);
+        if(result != null) incomingMediaController.add(result);
+      }
     });
 
     socket.on('audio', (payload) async {
@@ -67,7 +84,7 @@ class SocketService {
     final id = (data['id'] ?? DateTime.now().microsecondsSinceEpoch.toString()).toString();
     final from = data['from']?.toString() ?? '';
     final to = data['to']?.toString() ?? '';
-    final type = data['type']?.toString() ?? 'image';
+    final type = data['type']?.toString() ?? 'media';
     final name = data['name']?.toString() ?? '';
     final mime = data['mime']?.toString() ?? '';
     final time = data['time']?.toString() ?? '';
@@ -79,7 +96,7 @@ class SocketService {
       final ext = _extensionFromMime(mime, fallback: path.extension(name));
       final file = await _writeTempFileWithExt(
         bytes,
-        ext: (type == 'file' || type == 'video' || type == 'voice')
+        ext: (type == 'file' || type == 'media' || type == 'voice')
             ? (ext.isEmpty ? '.bin' : ext)
             : ext,
       );
@@ -194,5 +211,25 @@ class SocketService {
   List<double> _toDoubleList(dynamic d) {
     if (d is List) return d.map((e) => (e as num).toDouble()).toList();
     return const [];
+  }
+
+  Future<Map<String, dynamic>> _materializeItem(Map item) async {
+    final mime = item['mime']?.toString() ?? '';
+    final name = item['name']?.toString() ?? '';
+    String? url = item['url']?.toString();
+    final b64 = item['data'] as String?;
+
+    if((url == null || url.isEmpty) && b64 != null && b64.isNotEmpty){
+      final bytes = base64Decode(b64);
+      final ext = _extensionFromMime(mime, fallback: path.extension(name));
+      final file = await _writeTempFileWithExt(bytes, ext: ext.isEmpty ? '.bin' : ext);
+      url = file.path;
+    }
+    return {
+      'type': (item['type'] ?? 'media').toString(),
+      'name': name,
+      'mime': mime,
+      'url': url,
+    };
   }
 }

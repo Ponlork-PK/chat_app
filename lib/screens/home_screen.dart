@@ -187,8 +187,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   if(index != selected){
                     Get.to(
                       ChatScreen(
-                        name: names[index].obs, 
-                        image: images[index].obs,
+                        name: names[index].obs,
+                        myImage: images[selected].obs,
+                        peerImage: images[index].obs,
                         myId: widget.id,
                         peerId: index.obs,
                       )
@@ -282,7 +283,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 Get.to(
                   ChatScreen(
                     name: names[index].obs, 
-                    image: images[index].obs,
+                    myImage: images[widget.id.value].obs,
+                    peerImage: images[index].obs,
                     myId: widget.id,
                     peerId: index.obs,
                   )

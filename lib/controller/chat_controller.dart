@@ -35,6 +35,7 @@ class ChatController extends GetxController {
 
   /// Stream of incoming audio payloads for UI to consume & render.
   final incomingAudioController = StreamController<Map<String, dynamic>>.broadcast();
+  final incomingMediaController = StreamController<Map<String, dynamic>>.broadcast();
 
   late String myId;
 
@@ -92,40 +93,85 @@ class ChatController extends GetxController {
     incomingAudioController.add(data);
   }
 
-  Future<File?> _pickImageFromGallery() async {
-    final XFile? image = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
+  Future<void> pickAndSendMultipleMedia(String receiverId) async {
+    final picks = await ImagePicker().pickMultipleMedia(
       imageQuality: 75,
       maxWidth: 1280,
       maxHeight: 1280,
     );
-    return image != null ? File(image.path) : null;
+
+    if(picks.isEmpty) return;
+
+    final items = <Map<String, dynamic>>[];
+
+    DateTime now = DateTime.now();
+    final hour = now.hour;
+    final minute = now.minute;
+    String peroid = hour >= 12 ? "PM" : "AM";
+
+    String time = '$hour:${minute.toString().padLeft(2, '0')} $peroid';
+    for(final x in picks){
+      final file = File(x.path);
+      if(!await file.exists()) continue;
+
+      final mime = lookupMimeType(file.path) ?? _guessMimeByExt(file.path);
+      final bytes = await file.readAsBytes();
+
+      items.add({
+        "type": "media",
+        "url": file.path,
+        "name": p.basename(file.path),
+        "mime": mime,
+        "data": base64Encode(bytes),
+      });
+    }
+
+    if(items.isEmpty) return;
+
+    final payload = {
+      "from": myId,
+      "to": receiverId,
+      "time": time,
+      "items": items,
+    };
+
+    socketService.socket.emitWithAck('media', payload, ack: (res){
+      print('media ack: $res');
+    });
+
+    scrollToBottom();
+
   }
 
-  Future<File?> _pickImageFromCamera() async {
-    final XFile? image = await ImagePicker().pickImage(
-      source: ImageSource.camera,
-      imageQuality: 85,
-      maxWidth: 1920,
-      maxHeight: 1920,
-    );
-    return image != null ? File(image.path) : null;
-  }
-
-  Future<File?> _pickVideoFromGallery() async {
-    final XFile? video = await ImagePicker().pickVideo(
-      source: ImageSource.gallery,
-      maxDuration: const Duration(minutes: 5),
-    );
-    return video != null ? File(video.path) : null;
-  }
-
-  Future<File?> _pickVideoFromCamera() async {
-    final XFile? video = await ImagePicker().pickVideo(
-      source: ImageSource.camera,
-      maxDuration: const Duration(minutes: 5),
-    );
-    return video != null ? File(video.path) : null;
+  String _guessMimeByExt(String path){
+    final ext = p.extension(path).toLowerCase();
+    switch (ext) {
+      case '.jpg':
+      case '.jpeg':
+        return 'image/jpeg';
+      case '.png':
+        return 'image/png';
+      case '.gif':
+        return 'image/gif';
+      case '.webp':
+        return 'image/webp';
+      case '.heic':
+        return 'image/heic';
+      case '.mp4':
+        return 'video/mp4';
+      case '.mov':
+        return 'video/quicktime';
+      case '.m4v':
+        return 'video/x-m4v';
+      case '.avi':
+        return 'video/x-msvideo';
+      case '.mkv':
+        return 'video/x-matroska';
+      case '.webm':
+        return 'video/webm';
+      default:
+        return 'application/octet-stream';
+    }
   }
 
   void sendMessage({required String me, required String peer, required String text}) {
@@ -158,58 +204,6 @@ class ChatController extends GetxController {
       socketService.socket.emit('dm', messageJson);
       return;
     }
-  }
-
-  Future<void> sendImageTo(String receiverId, {bool fromCamera = false}) async {
-    final file = fromCamera ? await _pickImageFromCamera() : await _pickImageFromGallery();
-    if (file == null) return;
-
-    final bytes = await file.readAsBytes();
-    final mime = lookupMimeType(file.path) ?? 'image/jpeg';
-    final name = p.basename(file.path);
-
-    final payload = {
-      'from': myId,
-      'to': receiverId,
-      'type': 'image',
-      'url': file.path,
-      'name': name,
-      'mime': mime,
-      'data': base64Encode(bytes),
-      'time': DateTime.now().toIso8601String(),
-    };
-
-    socketService.socket.emitWithAck('media', payload, ack: (res) {
-      print('Media ack: $res');
-    });
-
-    scrollToBottom();
-  }
-
-  Future<void> sendVideoTo(String receiverId, {bool fromCamera = false}) async {
-    final file = fromCamera ? await _pickVideoFromCamera() : await _pickVideoFromGallery();
-    if (file == null) return;
-
-    final bytes = await file.readAsBytes();
-    final mime = lookupMimeType(file.path) ?? 'video/mp4';
-    final name = p.basename(file.path);
-
-    final payload = {
-      'from': myId,
-      'to': receiverId,
-      'type': 'video',
-      'url': file.path,
-      'name': name,
-      'mime': mime,
-      'data': base64Encode(bytes),
-      'time': DateTime.now().microsecondsSinceEpoch.toString(),
-    };
-
-    socketService.socket.emitWithAck('media', payload, ack: (res) {
-      print('Media ack: $res');
-    });
-
-    scrollToBottom();
   }
 
   void scrollToBottom() {
@@ -274,8 +268,14 @@ class ChatController extends GetxController {
     if (!await file.exists()) return;
 
     final bytes = await file.readAsBytes();
-    final nowIso = DateTime.now().toIso8601String();
     final name = 'vm_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+    DateTime now = DateTime.now();
+    final hour = now.hour;
+    final minute = now.minute;
+    String peroid = hour >= 12 ? "PM" : "AM";
+
+    String time = '$hour:${minute.toString().padLeft(2, '0')} $peroid';
 
     final tmpPath = await _tempM4aPath();
     await File(tmpPath).writeAsBytes(bytes, flush: true);
@@ -287,7 +287,7 @@ class ChatController extends GetxController {
       'to': to,
       'name': name,
       'mime': 'audio/mp4',
-      'time': nowIso,
+      'time': time,
       'duration': durationMs,
       'wave': List<double>.from(waveformSamples),
       'bytes': bytes,
@@ -301,7 +301,7 @@ class ChatController extends GetxController {
       'to': to,
       'name': name,
       'mime': 'audio/mp4',
-      'time': nowIso,
+      'time': time,
       'duration': durationMs,
       'wave': waveformSamples,
       'data': base64Encode(bytes),

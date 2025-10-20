@@ -84,7 +84,8 @@ class SearchScreen extends StatelessWidget {
                 Get.to(
                   ChatScreen(
                     name: names[index].obs, 
-                    image: images[index].obs,
+                    myImage: images[myId.value].obs,
+                    peerImage: images[index].obs,
                     myId: myId,
                     peerId: index.obs,
                   )
