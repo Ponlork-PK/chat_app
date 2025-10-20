@@ -22,7 +22,7 @@ class SocketService {
     _selfId = myId;
 
     socket = IO.io(
-      'http://10.115.206.196:3000',
+      'http://10.10.77.253:3000',
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .setAuth({'username': myId})
@@ -231,25 +231,5 @@ class SocketService {
   List<double> _toDoubleList(dynamic d) {
     if (d is List) return d.map((e) => (e as num).toDouble()).toList();
     return const [];
-  }
-
-  Future<Map<String, dynamic>> _materializeItem(Map item) async {
-    final mime = item['mime']?.toString() ?? '';
-    final name = item['name']?.toString() ?? '';
-    String? url = item['url']?.toString();
-    final b64 = item['data'] as String?;
-
-    if((url == null || url.isEmpty) && b64 != null && b64.isNotEmpty){
-      final bytes = base64Decode(b64);
-      final ext = _extensionFromMime(mime, fallback: path.extension(name));
-      final file = await _writeTempFileWithExt(bytes, ext: ext.isEmpty ? '.bin' : ext);
-      url = file.path;
-    }
-    return {
-      'type': (item['type'] ?? 'media').toString(),
-      'name': name,
-      'mime': mime,
-      'url': url,
-    };
   }
 }

@@ -5,7 +5,6 @@ import 'package:chat_app/model/message.dart';
 import 'package:chat_app/screens/widget/audio_wave_widget.dart';
 import 'package:chat_app/screens/widget/video_player_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as path;
 import 'package:get/get.dart';
 
 // ignore: must_be_immutable
@@ -124,57 +123,155 @@ class MessageItemWidget extends StatelessWidget {
 
         if(files.isEmpty) return const Icon(Icons.broken_image, size: 80, color: Colors.red);
 
-        return Container(
-          width: 230,
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: files.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: files.length == 1 ? 1 : 2,
-              mainAxisSpacing: 2,
-              crossAxisSpacing: 5,
-            ),
-            itemBuilder: (context, index) {
-              final item = files[index];
-              final url = (item.url ?? '');
-              final mime = (item.mime ?? '').toLowerCase();
-              final isVideo = mime.startsWith('video/') ||
-                            url.toLowerCase().endsWith('.mp4') ||
-                            url.toLowerCase().endsWith('.mov') ||
-                            url.toLowerCase().endsWith('.mkv');
-
-              if (isVideo) {
-                if (url.isNotEmpty) {
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: VideoPlayerWidget(url: url),
-                  );
-                }
-                return const Icon(Icons.broken_image, color: Colors.red);
-              } else {
-                // from network
-                if (url.startsWith('http')) {
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.network(url, fit: BoxFit.cover),
-                  );
-                } else if (url.isNotEmpty && File(url).existsSync()) {
-                  // from url file anywhere
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.file(File(url), fit: BoxFit.cover),
-                  );
-                }
-                return const Icon(Icons.broken_image, color: Colors.red);
-              }
-            },
-          ),
-        );
+        return isMe.value
+        ? Row(
+            spacing: 10,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(time.value.toString()),
+              Container(
+                width: 230,
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: files.length > 4 ? 4 : files.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: files.length == 1 ? 1 : 2,
+                    mainAxisSpacing: 2,
+                    crossAxisSpacing: 5,
+                  ),
+                  itemBuilder: (context, index) {
+                    final item = files[index];
+                    final url = (item.url ?? '');
+                    final mime = (item.mime ?? '').toLowerCase();
+                    final isVideo = mime.startsWith('video/') ||
+                                  url.toLowerCase().endsWith('.mp4') ||
+                                  url.toLowerCase().endsWith('.mov') ||
+                                  url.toLowerCase().endsWith('.mkv');
+              
+                    // if items larger then 4
+                    final hasExtra = files.length > 4;
+                    if(hasExtra && index == 3){
+                      final extra = files.length - 3;
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[400],
+                          ),
+                          child: Text('$extra+', style: TextStyle(fontSize: 18),),
+                        ),
+                      );
+                    }
+              
+                    if (isVideo) {
+                      if (url.isNotEmpty) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: VideoPlayerWidget(url: url),
+                        );
+                      }
+                      return const Icon(Icons.broken_image, color: Colors.red);
+                    } else {
+                      // from network
+                      if (url.startsWith('http')) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.network(url, fit: BoxFit.cover),
+                        );
+                      } else if (url.isNotEmpty && File(url).existsSync()) {
+                        // from url file anywhere
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(File(url), fit: BoxFit.cover),
+                        );
+                      }
+                      return const Icon(Icons.broken_image, color: Colors.red);
+                    }
+                  },
+                ),
+              ),
+            ],
+          )
+        : Row(
+            spacing: 10,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Container(
+                width: 230,
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: files.length > 4 ? 4 : files.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: files.length == 1 ? 1 : 2,
+                    mainAxisSpacing: 2,
+                    crossAxisSpacing: 5,
+                  ),
+                  itemBuilder: (context, index) {
+                    final item = files[index];
+                    final url = (item.url ?? '');
+                    final mime = (item.mime ?? '').toLowerCase();
+                    final isVideo = mime.startsWith('video/') ||
+                                  url.toLowerCase().endsWith('.mp4') ||
+                                  url.toLowerCase().endsWith('.mov') ||
+                                  url.toLowerCase().endsWith('.mkv');
+              
+                    // if items larger then 4
+                    final hasExtra = files.length > 4;
+                    if(hasExtra && index == 3){
+                      final extra = files.length - 3;
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[400],
+                          ),
+                          child: Text('$extra+', style: TextStyle(fontSize: 18),),
+                        ),
+                      );
+                    }
+              
+                    if (isVideo) {
+                      if (url.isNotEmpty) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: VideoPlayerWidget(url: url),
+                        );
+                      }
+                      return const Icon(Icons.broken_image, color: Colors.red);
+                    } else {
+                      // from network
+                      if (url.startsWith('http')) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.network(url, fit: BoxFit.cover),
+                        );
+                      } else if (url.isNotEmpty && File(url).existsSync()) {
+                        // from url file anywhere
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(File(url), fit: BoxFit.cover),
+                        );
+                      }
+                      return const Icon(Icons.broken_image, color: Colors.red);
+                    }
+                  },
+                ),
+              ),
+              Text(time.value.toString()),
+            ],
+          );
 
       case 'audio':
         return isMe.value
