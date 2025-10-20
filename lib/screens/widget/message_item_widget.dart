@@ -51,7 +51,7 @@ class MessageItemWidget extends StatelessWidget {
         children: [
           Flexible(
             child: Container(
-              margin: EdgeInsets.only(top: 4),
+              margin: EdgeInsets.only(top: 6),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(10),
@@ -117,56 +117,64 @@ class MessageItemWidget extends StatelessWidget {
     switch (type) {
       case 'media':
         final files = items ?? <MediaItem>[];
-        final ext = (mime ?? path.extension(url ?? '').toLowerCase());
-        final isVideo = mime?.startsWith('video/') == true 
-                        || ext.endsWith('.mp4')
-                        || ext.endsWith('.mkv')
-                        || ext.endsWith('.mov');
-        if(files.isEmpty && (url != null || (bytes != null || bytes!.isNotEmpty))){
+        
+        if (files.isEmpty && (url != null || (bytes?.isNotEmpty ?? false))){
           files.add(MediaItem(type: 'media', url: url, mime: mime, bytes: bytes));
         }
 
         if(files.isEmpty) return const Icon(Icons.broken_image, size: 80, color: Colors.red);
 
-        final count = files.length;
-        final cols = count == 1 ? 1 : 2;
+        return Container(
+          width: 230,
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: files.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: files.length == 1 ? 1 : 2,
+              mainAxisSpacing: 2,
+              crossAxisSpacing: 5,
+            ),
+            itemBuilder: (context, index) {
+              final item = files[index];
+              final url = (item.url ?? '');
+              final mime = (item.mime ?? '').toLowerCase();
+              final isVideo = mime.startsWith('video/') ||
+                            url.toLowerCase().endsWith('.mp4') ||
+                            url.toLowerCase().endsWith('.mov') ||
+                            url.toLowerCase().endsWith('.mkv');
 
-        if(url != null && File(url!).existsSync()){
-          
-          return Container(
-            width: 230,
-            
-            decoration: BoxDecoration(
-              color: Colors.amber,
-              borderRadius: BorderRadius.circular(15)
-            ),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: count,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-              ), 
-              itemBuilder: (context, index){
-                return Container(
-                  child: isVideo
-                    ? VideoPlayerWidget(url: url!)
-                    : ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.file(
-                        File(url!),
-                        width: 250,
-                        height: 250,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                );
+              if (isVideo) {
+                if (url.isNotEmpty) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: VideoPlayerWidget(url: url),
+                  );
+                }
+                return const Icon(Icons.broken_image, color: Colors.red);
+              } else {
+                // from network
+                if (url.startsWith('http')) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(url, fit: BoxFit.cover),
+                  );
+                } else if (url.isNotEmpty && File(url).existsSync()) {
+                  // from url file anywhere
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(File(url), fit: BoxFit.cover),
+                  );
+                }
+                return const Icon(Icons.broken_image, color: Colors.red);
               }
-            ),
-          );
-        }
-        
-        return const Icon(Icons.broken_image, size: 80, color: Colors.red);
+            },
+          ),
+        );
 
       case 'audio':
         return isMe.value

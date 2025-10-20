@@ -49,18 +49,38 @@ class SocketService {
           'from': data['from'],
           'to': data['to'],
           'time': data['time'],
-          'type': data['media'],
+          'type': 'media',
         };
+
+        final List items = [];
         
         for( final it in (data['items'] as List)){
           if( it is Map ){
             final res = await _handleIncomingMedia({...base, ...it});
-            if(res != null) incomingMediaController.add(res);
+            if(res != null) items.add(res);
           }
         }
+
+        if(items.isEmpty) return;
+
+        incomingMediaController.add({
+          ...base,
+          'kind': 'media',
+          'items': items,
+        });
       } else {
         final result = await _handleIncomingMedia(data);
-        if(result != null) incomingMediaController.add(result);
+        if(result != null) {
+          incomingMediaController.add({
+            'id': (data['id'] ?? DateTime.now().microsecondsSinceEpoch).toString(),
+            'from': data['from'],
+            'to': data['to'],
+            'time': data['time'],
+            'type': 'media',
+            'kind': 'media',
+            'items': [result],
+          });
+        }
       }
     });
 

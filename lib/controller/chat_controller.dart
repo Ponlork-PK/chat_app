@@ -71,22 +71,8 @@ class ChatController extends GetxController {
   }
 
   void _onMediaReceived(Map<String, dynamic> data) {
-    appendMessage(
-      data['from'], 
-      data['to'],
-      Message(
-        id: data['id'], 
-        from: data['from'], 
-        to: data['to'], 
-        message: '', 
-        sentByMe: data['from'], 
-        time: data['time'],
-        type: data['type'],
-        url: data['url'],
-        name: data['name'],
-        mime: data['mime'],
-      )
-    );
+    final msg = Message.fromJson(data);
+    appendMessage(msg.from, msg.to, msg);
   }
 
   void _onAudioReceived(Map<String, dynamic> data){
