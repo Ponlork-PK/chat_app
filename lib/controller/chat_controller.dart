@@ -28,7 +28,7 @@ class ChatController extends GetxController {
   final waveformSamples = <double>[].obs;
 
   final _isCancelled = false.obs;
-  static const int maxLiveBars = 26;
+  static const int maxLiveBars = 45;
 
   DateTime? _recordStartAt;
   String? _recordFilePath;

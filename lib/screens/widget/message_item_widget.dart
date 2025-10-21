@@ -258,7 +258,7 @@ class MessageItemWidget extends StatelessWidget {
                           child: Image.network(url, fit: BoxFit.cover),
                         );
                       } else if (url.isNotEmpty && File(url).existsSync()) {
-                        // from url file anywhere
+                        // from url file from gallery
                         return ClipRRect(
                           borderRadius: BorderRadius.circular(10),
                           child: Image.file(File(url), fit: BoxFit.cover),

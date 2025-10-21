@@ -22,7 +22,7 @@ class SocketService {
     _selfId = myId;
 
     socket = IO.io(
-      'http://10.10.77.253:3000',
+      'http://10.115.206.196:3000',
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .setAuth({'username': myId})

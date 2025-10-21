@@ -154,18 +154,23 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         bottom: 60,
         child: Column(children: [_buildMessageList])),
 
-      Positioned(
-        left: 0,
-        right: 0,
-        bottom: 62,
-        child: LiveRecordBar()
-      ),
+      // Positioned(
+      //   left: 0,
+      //   right: 0,
+      //   bottom: 62,
+      //   child: LiveRecordBar()
+      // ),
 
       Positioned(
         left: 0,
         right: 0,
         bottom: 0,
-        child: _buildInputAndSend
+        child: Obx(()=> chatController.isRecording.value 
+            ? LiveRecordBar(
+                me: widget.myId.value.toString(), 
+                peer: widget.peerId.toString(),) 
+            : _buildInputAndSend,
+        ),
       )
     ]
   );
@@ -219,6 +224,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
           const SizedBox(width: 5),
           GestureDetector(
+            onTap: () {
+              chatController.startVoiceHold();
+            },
             onLongPressStart: (_) {
               chatController.startVoiceHold();
             },

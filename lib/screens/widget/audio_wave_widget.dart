@@ -10,7 +10,9 @@ import 'package:chat_app/controller/chat_controller.dart';
 
 
 class LiveRecordBar extends StatelessWidget {
-  LiveRecordBar({super.key});
+  final String? me;
+  final String? peer;
+  LiveRecordBar({super.key, this.me, this.peer});
 
   final ChatController chatController = Get.find<ChatController>();
 
@@ -20,43 +22,73 @@ class LiveRecordBar extends StatelessWidget {
       if (!chatController.isRecording.value) return const SizedBox.shrink();
 
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        margin: const EdgeInsets.only(bottom: 10, left: 12, right: 12),
+        width: double.infinity,
+        height: 60,
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.82),
-          borderRadius: BorderRadius.circular(14),
+          color: Colors.transparent,
         ),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.mic, color: Colors.white, size: 18),
-              const SizedBox(width: 10),
-              Obx(() => Text(
-                    _formatElapsed(chatController.elapsedSeconds.value),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            IconButton(
+              onPressed: () async {
+                chatController.setCancelRecording(true);
+                await chatController.endVoiceHold(
+                  from: me.toString(),
+                  to: peer.toString(),
+                );
+              }, 
+              icon: Icon(Icons.delete, color: Colors.red, size: 30,),
+            ),
+            Expanded(
+              child: Container(
+                height: 60,
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(width: 6),
+                    const Icon(Icons.mic, color: Colors.white, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Obx(() => TinyWaveform(
+                              samples: chatController.waveformSamples.toList(growable: false),
+                              height: 28,
+                              barWidth: 3,
+                              barGap: 2,
+                              isRecording: true,
+                              isOutgoing: true,
+                            )),
+                      ),
                     ),
-                  )),
-              const SizedBox(width: 12),
-              Obx(() => TinyWaveform(
-                    samples: chatController.waveformSamples.toList(growable: false),
-                    height: 28,
-                    barWidth: 3,
-                    barGap: 2,
-                    isRecording: true,
-                    isOutgoing: true,
-                  )),
-              const SizedBox(width: 12),
-              const Text(
-                'Slide up to cancel',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                    const SizedBox(width: 8),
+                    Obx(() => Text(
+                          _formatElapsed(chatController.elapsedSeconds.value),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        )),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+            IconButton(
+              onPressed: (){
+                chatController.endVoiceHold(from: me.toString(), to: peer.toString());
+              }, 
+              icon: Icon(Icons.send, color: Colors.blue, size: 30,),
+            )
+          ],
         ),
       );
     });
