@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -135,17 +136,21 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
   Duration? totalDuration;
   String? _tempM4aPath;
 
+  StreamSubscription? _stateSub;
+  StreamSubscription? _durationSub;
+  StreamSubscription? _positionSub;
+
   @override
   void initState() {
     super.initState();
 
-    audioPlayer.onPlayerStateChanged.listen(
+    _stateSub = audioPlayer.onPlayerStateChanged.listen(
       (state) => setState(() => isPlaying = (state == PlayerState.playing)),
     );
-    audioPlayer.onDurationChanged.listen(
+    _durationSub = audioPlayer.onDurationChanged.listen(
       (d) => setState(() => totalDuration = d),
     );
-    audioPlayer.onPositionChanged.listen(
+    _positionSub = audioPlayer.onPositionChanged.listen(
       (d) => setState(() => currentPosition = d),
     );
   }
@@ -158,6 +163,9 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
 
   @override
   void dispose() {
+    _stateSub?.cancel();
+    _durationSub?.cancel();
+    _positionSub?.cancel();
     audioPlayer.dispose();
     super.dispose();
   }

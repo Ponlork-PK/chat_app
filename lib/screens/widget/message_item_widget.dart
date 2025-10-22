@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:chat_app/model/message.dart';
+import 'package:chat_app/screens/preview_content.dart';
 import 'package:chat_app/screens/widget/audio_wave_widget.dart';
 import 'package:chat_app/screens/widget/video_player_widget.dart';
 import 'package:flutter/material.dart';
@@ -76,39 +77,39 @@ class MessageItemWidget extends StatelessWidget {
           ),
         ],
       )
-      : Row(
-        spacing: 8,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              image: DecorationImage(
-                image: NetworkImage(peerImage.value),
-                fit: BoxFit.cover,
-              ),
-              borderRadius: BorderRadius.circular(17),
-            ),
-          ),
-          Flexible(
-            child: Container(
-              margin: EdgeInsets.only(top: 4),
+        : Row(
+          spacing: 8,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(10),
-                  topRight: const Radius.circular(10),
-                  bottomLeft: Radius.circular(isMe.value ? 10 : 2),
-                  bottomRight: Radius.circular(isMe.value ? 2 : 10),
+                color: Colors.transparent,
+                image: DecorationImage(
+                  image: NetworkImage(peerImage.value),
+                  fit: BoxFit.cover,
                 ),
+                borderRadius: BorderRadius.circular(17),
               ),
-              child: isMe.value ? SizedBox.shrink() : _buildContent(),
             ),
-          ),
-        ],
-      ),
+            Flexible(
+              child: Container(
+                margin: EdgeInsets.only(top: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(10),
+                    topRight: const Radius.circular(10),
+                    bottomLeft: Radius.circular(isMe.value ? 10 : 2),
+                    bottomRight: Radius.circular(isMe.value ? 2 : 10),
+                  ),
+                ),
+                child: isMe.value ? SizedBox.shrink() : _buildContent(),
+              ),
+            ),
+          ],
+        ),
     );
   }
 
@@ -157,38 +158,58 @@ class MessageItemWidget extends StatelessWidget {
                     final hasExtra = files.length > 4;
                     if(hasExtra && index == 3){
                       final extra = files.length - 3;
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[400],
+                      return GestureDetector(
+                        onTap: () {
+                          Get.to(PreviewContent(items: items!, initialIndex: index,));
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[400],
+                            ),
+                            child: Text('$extra+', style: TextStyle(fontSize: 18),),
                           ),
-                          child: Text('$extra+', style: TextStyle(fontSize: 18),),
                         ),
                       );
                     }
               
                     if (isVideo) {
                       if (url.isNotEmpty) {
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: VideoPlayerWidget(url: url),
+                        return GestureDetector(
+                          onTap: () {
+                            Get.to(PreviewContent(items: items!, initialIndex: index,));
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: VideoPlayerWidget(url: url, mime: mime,),
+                          ),
                         );
                       }
                       return const Icon(Icons.broken_image, color: Colors.red);
                     } else {
                       // from network
                       if (url.startsWith('http')) {
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.network(url, fit: BoxFit.cover),
+                        return GestureDetector(
+                          onTap: () {
+                            Get.to(PreviewContent(items: items!, initialIndex: index,));
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(url, fit: BoxFit.cover),
+                          ),
                         );
                       } else if (url.isNotEmpty && File(url).existsSync()) {
                         // from url file anywhere
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.file(File(url), fit: BoxFit.cover),
+                        return GestureDetector(
+                          onTap: () {
+                            Get.to(PreviewContent(items: items!, initialIndex: index,));
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.file(File(url), fit: BoxFit.cover),
+                          ),
                         );
                       }
                       return const Icon(Icons.broken_image, color: Colors.red);
@@ -246,7 +267,7 @@ class MessageItemWidget extends StatelessWidget {
                       if (url.isNotEmpty) {
                         return ClipRRect(
                           borderRadius: BorderRadius.circular(10),
-                          child: VideoPlayerWidget(url: url),
+                          child: VideoPlayerWidget(url: url, mime: mime,),
                         );
                       }
                       return const Icon(Icons.broken_image, color: Colors.red);

@@ -28,7 +28,7 @@ class Message {
     this.items,
   });
 
-  bool get isPacket => items != null && items!.isNotEmpty;
+  // bool get isPacket => items != null && items!.isNotEmpty;
 
   factory Message.fromJson(Map<String, dynamic> map){
     final id = (map['id'] ?? DateTime.now().millisecondsSinceEpoch.toString());
